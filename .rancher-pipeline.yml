@@ -16,11 +16,11 @@ stages:
   steps:
   - applyAppConfig:
       catalogTemplate: p-wntj9:vega-helmcharts-mod-feesfines
-      version: 15.9.0
+      version: 0.1.26
       answers:
         image.repository: docker.dev.folio.org/mod-feesfines
         image.tag: vega-modfee-105
-      name: mod-feesfines
+      name: mod-feesfines-2
       targetNamespace: vega
 timeout: 60
 notification: {}
