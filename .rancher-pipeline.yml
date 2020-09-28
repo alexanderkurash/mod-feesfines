@@ -20,7 +20,7 @@ stages:
       answers:
         image.repository: docker.dev.folio.org/mod-feesfines
         image.tag: vega-modfee-105
-      name: mod-feesfines-2
+      name: mod-feesfines
       targetNamespace: vega
 timeout: 60
 notification: {}
