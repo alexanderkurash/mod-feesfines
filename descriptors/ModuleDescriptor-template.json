@@ -54,7 +54,7 @@
   "provides":[
     {
       "id":"feesfines",
-      "version":"15.4",
+      "version":"15.6",
       "handlers":[
         {
           "methods":[
@@ -295,6 +295,68 @@
           "pathPattern":"/accounts/{id}/refund",
           "permissionsRequired":[
             "accounts.refund.post"
+          ],
+          "modulePermissions": [
+            "pubsub.publish.post",
+            "modperms.feesfines.patron-notices.post"
+          ]
+        },
+        {
+          "methods":[
+            "POST"
+          ],
+          "pathPattern":"/accounts-bulk/check-pay",
+          "permissionsRequired":[
+            "accounts.check-pay.post"
+          ]
+        },
+        {
+          "methods":[
+            "POST"
+          ],
+          "pathPattern":"/accounts-bulk/check-transfer",
+          "permissionsRequired":[
+            "accounts.check-transfer.post"
+          ]
+        },
+        {
+          "methods":[
+            "POST"
+          ],
+          "pathPattern":"/accounts-bulk/check-refund",
+          "permissionsRequired":[
+            "accounts.check-refund.post"
+          ]
+        },
+        {
+          "methods":[
+            "POST"
+          ],
+          "pathPattern":"/accounts-bulk/check-waive",
+          "permissionsRequired":[
+            "accounts.check-waive.post"
+          ]
+        },
+        {
+          "methods":[
+            "POST"
+          ],
+          "pathPattern":"/accounts-bulk/pay",
+          "permissionsRequired":[
+            "accounts.pay.post"
+          ],
+          "modulePermissions": [
+            "pubsub.publish.post",
+            "modperms.feesfines.patron-notices.post"
+          ]
+        },
+        {
+          "methods":[
+            "POST"
+          ],
+          "pathPattern":"/accounts-bulk/waive",
+          "permissionsRequired":[
+            "accounts.waive.post"
           ],
           "modulePermissions": [
             "pubsub.publish.post",

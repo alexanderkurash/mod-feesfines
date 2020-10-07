@@ -9,6 +9,7 @@ import org.folio.rest.domain.MonetaryValue;
 import org.folio.rest.jaxrs.model.Account;
 import org.folio.rest.jaxrs.model.CancelActionRequest;
 import org.folio.rest.jaxrs.model.Feefineaction;
+import org.folio.rest.service.action.context.ActionContext;
 import org.folio.rest.service.action.validation.CancelActionValidationService;
 
 import io.vertx.core.Context;
@@ -48,7 +49,7 @@ public class CancelActionService extends ActionService {
   @Override
   protected Future<ActionContext> validateAction(ActionContext context) {
 
-    return validationService.validate(context.getAccount(), null)
+    return validationService.validate(context.getAccountId(), context.getAccount(), null)
       .map(result -> context.withRequestedAmount(null));
   }
 }

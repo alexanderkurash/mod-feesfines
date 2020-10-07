@@ -23,6 +23,7 @@ import org.folio.rest.repository.AccountRepository;
 import org.folio.rest.repository.FeeFineActionRepository;
 import org.folio.rest.service.AccountUpdateService;
 import org.folio.rest.service.PatronNoticeService;
+import org.folio.rest.service.action.context.ActionContext;
 import org.folio.rest.service.action.validation.ActionValidationService;
 
 import io.vertx.core.Context;
@@ -67,7 +68,7 @@ public abstract class ActionService {
     DefaultActionRequest request = (DefaultActionRequest) context.getRequest();
     final String amount = request.getAmount();
 
-    return validationService.validate(context.getAccount(), amount)
+    return validationService.validate(context.getAccountId(), context.getAccount(), amount)
       .map(result -> context.withRequestedAmount(new MonetaryValue(amount)));
   }
 
