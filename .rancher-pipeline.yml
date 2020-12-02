@@ -9,7 +9,7 @@ stages:
   - publishImageConfig:
       dockerfilePath: ./Dockerfile
       buildContext: .
-      tag: docker.dev.folio.org/mod-feesfines:vega-modfee-105
+      tag: docker.dev.folio.org/mod-feesfines:vega-modfee-144
       pushRemote: true
       registry: docker.dev.folio.org
 - name: Deploy
@@ -19,7 +19,7 @@ stages:
       version: 0.1.26
       answers:
         image.repository: docker.dev.folio.org/mod-feesfines
-        image.tag: vega-modfee-105
+        image.tag: vega-modfee-144
       name: mod-feesfines
       targetNamespace: vega
 timeout: 60
