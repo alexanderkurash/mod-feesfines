@@ -9,15 +9,18 @@ import static java.lang.String.format;
 import static org.folio.rest.domain.Action.PAY;
 import static org.folio.rest.domain.Action.TRANSFER;
 import static org.folio.rest.domain.Action.WAIVE;
+import static org.folio.rest.utils.LogEventUtils.fetchLogEventPayloads;
 import static org.folio.rest.utils.ResourceClients.buildAccountPayClient;
 import static org.folio.rest.utils.ResourceClients.buildAccountTransferClient;
 import static org.folio.rest.utils.ResourceClients.buildAccountWaiveClient;
 import static org.folio.rest.utils.ResourceClients.feeFineActionsClient;
 import static org.folio.test.support.matcher.FeeFineActionMatchers.feeFineAction;
+import static org.folio.test.support.matcher.LogEventMatcher.feeFineActionLogEventPayload;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
 import java.util.concurrent.TimeUnit;
@@ -25,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.folio.rest.domain.Action;
-import org.folio.rest.domain.ActionRequest;
 import org.folio.rest.domain.EventType;
 import org.folio.rest.domain.FeeFineStatus;
 import org.folio.rest.jaxrs.model.Account;
@@ -178,7 +180,7 @@ public class AccountsPayWaiveTransferAPITests extends ApiTests {
     String requestedAmountString = "1.004123456789";
     String expectedPaymentStatus = action.getFullResult();
 
-    final ActionRequest request = createRequest(requestedAmountString);
+    final DefaultActionRequest request = createRequest(requestedAmountString);
 
     resourceClient.post(toJson(request))
       .then()
@@ -201,6 +203,9 @@ public class AccountsPayWaiveTransferAPITests extends ApiTests {
       .body("remaining", is(0.0f))
       .body("status.name", is("Closed"))
       .body("paymentStatus.name", is(expectedPaymentStatus));
+
+    assertThat(fetchLogEventPayloads(getOkapi()).get(0),
+      is(feeFineActionLogEventPayload(account, request, action.getFullResult(), 1.0, 0.0)));
   }
 
   @Test
@@ -212,7 +217,7 @@ public class AccountsPayWaiveTransferAPITests extends ApiTests {
     String requestedAmountString = "1.004987654321"; // should be rounded to 1.00
     String expectedPaymentStatus = action.getPartialResult();
 
-    final ActionRequest request = createRequest(requestedAmountString);
+    final DefaultActionRequest request = createRequest(requestedAmountString);
 
     resourceClient.post(toJson(request))
       .then()
@@ -235,6 +240,9 @@ public class AccountsPayWaiveTransferAPITests extends ApiTests {
       .body("remaining", is(0.24f))
       .body("status.name", is("Open"))
       .body("paymentStatus.name", is(expectedPaymentStatus));
+
+    assertThat(fetchLogEventPayloads(getOkapi()).get(0),
+      is(feeFineActionLogEventPayload(account, request, action.getPartialResult(), 1.0, 0.24)));
   }
 
   @Test
@@ -294,6 +302,11 @@ public class AccountsPayWaiveTransferAPITests extends ApiTests {
         .put("loanId", account.getLoanId())
         .put("feeFineId", account.getId()));
     }
+
+    assertThat(fetchLogEventPayloads(getOkapi()).get(0),
+      is(feeFineActionLogEventPayload(account, request,
+        terminalAction ? action.getFullResult() : action.getPartialResult(),
+        requestedAmount, expectedAccountBalanceAfter)));
   }
 
   private Account createAccount(double amount) {
@@ -301,6 +314,7 @@ public class AccountsPayWaiveTransferAPITests extends ApiTests {
       .withId(ACCOUNT_ID)
       .withOwnerId(randomId())
       .withUserId(randomId())
+      .withBarcode("barcode")
       .withItemId(randomId())
       .withLoanId(randomId())
       .withMaterialTypeId(randomId())

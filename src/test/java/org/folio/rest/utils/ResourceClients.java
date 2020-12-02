@@ -10,6 +10,18 @@ public final class ResourceClients {
     return new ResourceClient("/accounts");
   }
 
+  public static ResourceClient buildFeeFinesClient() {
+    return new ResourceClient("/feefines");
+  }
+
+  public static ResourceClient buildManualBlockClient() {
+    return new ResourceClient("/manualblocks");
+  }
+
+  public static ResourceClient buildManualBlockTemplateClient() {
+    return new ResourceClient("/manual-block-templates");
+  }
+
   public static ResourceClient buildAccountCheckPayClient(String accountId) {
     return buildAccountActionClient(accountId, "check-pay");
   }
@@ -42,7 +54,7 @@ public final class ResourceClients {
     return buildAccountActionClient(accountId, "cancel");
   }
 
-  public static ResourceClient accountsRefundClient(String accountId) {
+  public static ResourceClient buildAccountsRefundClient(String accountId) {
     return buildAccountActionClient(accountId, "refund");
   }
 
@@ -72,6 +84,18 @@ public final class ResourceClients {
 
   public static ResourceClient buildAccountBulkWaiveClient() {
     return buildAccountBulkActionClient("waive");
+  }
+
+  public static ResourceClient buildAccountBulkTransferClient() {
+    return buildAccountBulkActionClient("transfer");
+  }
+
+  public static ResourceClient buildAccountBulkCancelClient() {
+    return buildAccountBulkActionClient("cancel");
+  }
+
+  public static ResourceClient buildAccountBulkRefundClient() {
+    return buildAccountBulkActionClient("refund");
   }
 
   private static ResourceClient buildAccountBulkActionClient(String action) {

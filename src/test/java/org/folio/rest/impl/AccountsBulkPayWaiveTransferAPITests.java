@@ -8,15 +8,21 @@ import static io.restassured.http.ContentType.JSON;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
 import static org.folio.rest.domain.Action.PAY;
+import static org.folio.rest.domain.Action.TRANSFER;
 import static org.folio.rest.domain.Action.WAIVE;
+import static org.folio.rest.utils.LogEventUtils.fetchLogEventPayloads;
 import static org.folio.rest.utils.ResourceClients.buildAccountBulkPayClient;
+import static org.folio.rest.utils.ResourceClients.buildAccountBulkTransferClient;
 import static org.folio.rest.utils.ResourceClients.buildAccountBulkWaiveClient;
 import static org.folio.rest.utils.ResourceClients.feeFineActionsClient;
 import static org.folio.test.support.matcher.FeeFineActionMatchers.feeFineAction;
+import static org.folio.test.support.matcher.LogEventMatcher.feeFineActionLogEventPayload;
 import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.either;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
 import java.util.Arrays;
@@ -37,6 +43,7 @@ import org.folio.rest.jaxrs.model.Status;
 import org.folio.rest.utils.ResourceClient;
 import org.folio.test.support.ApiTests;
 import org.folio.util.pubsub.PubSubClientUtils;
+import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -70,7 +77,7 @@ public class AccountsBulkPayWaiveTransferAPITests extends ApiTests {
 
   @Parameters(name = "{0}")
   public static Object[] parameters() {
-    return new Object[] { PAY, WAIVE };
+    return new Object[] { PAY, WAIVE, TRANSFER };
   }
 
   @Before
@@ -86,6 +93,8 @@ public class AccountsBulkPayWaiveTransferAPITests extends ApiTests {
       return buildAccountBulkPayClient();
     case WAIVE:
       return buildAccountBulkWaiveClient();
+    case TRANSFER:
+      return buildAccountBulkTransferClient();
     default:
       throw new IllegalArgumentException("Failed to get ResourceClient for action: " + action.name());
     }
@@ -267,13 +276,6 @@ public class AccountsBulkPayWaiveTransferAPITests extends ApiTests {
 
     DefaultBulkActionRequest request = createRequest(requestedAmount, TWO_ACCOUNT_IDS);
 
-    resourceClient.post(toJson(request))
-      .then()
-      .statusCode(HttpStatus.SC_CREATED)
-      .contentType(JSON)
-      .body(AMOUNT_KEY, is(requestedAmount))
-      .body(ACCOUNT_IDS_KEY, is(TWO_ACCOUNT_IDS));
-
     double expectedActionAmount = 1.5;
     double expectedRemainingAmount1 = 0.5;
     double expectedRemainingAmount2 = 0.0;
@@ -284,17 +286,26 @@ public class AccountsBulkPayWaiveTransferAPITests extends ApiTests {
     String expectedAccountStatus1 = FeeFineStatus.OPEN.getValue();
     String expectedAccountStatus2 = FeeFineStatus.CLOSED.getValue();
 
+    Matcher<JsonObject> feeFineActionsMatcher = allOf(
+      hasItem(
+        feeFineAction(FIRST_ACCOUNT_ID, account1.getUserId(), expectedRemainingAmount1,
+          expectedActionAmount, expectedPaymentStatus1, request.getTransactionInfo(), request)),
+      hasItem(
+        feeFineAction(SECOND_ACCOUNT_ID, account2.getUserId(), expectedRemainingAmount2,
+          expectedActionAmount, expectedPaymentStatus2, request.getTransactionInfo(), request)));
+
+    resourceClient.post(toJson(request))
+      .then()
+      .statusCode(HttpStatus.SC_CREATED)
+      .contentType(JSON)
+      .body(AMOUNT_KEY, is(requestedAmount))
+      .body(ACCOUNT_IDS_KEY, is(TWO_ACCOUNT_IDS))
+      .body(FEE_FINE_ACTIONS, feeFineActionsMatcher);
+
     actionsClient.getAll()
       .then()
       .body(FEE_FINE_ACTIONS, hasSize(2))
-      .body(FEE_FINE_ACTIONS, allOf(
-        hasItem(
-          feeFineAction(FIRST_ACCOUNT_ID, account1.getUserId(), expectedRemainingAmount1,
-            expectedActionAmount, expectedPaymentStatus1, request.getTransactionInfo(), request)),
-        hasItem(
-          feeFineAction(SECOND_ACCOUNT_ID, account2.getUserId(), expectedRemainingAmount2,
-            expectedActionAmount, expectedPaymentStatus2, request.getTransactionInfo(), request)))
-      );
+      .body(FEE_FINE_ACTIONS, feeFineActionsMatcher);
 
     accountsClient.getById(FIRST_ACCOUNT_ID)
       .then()
@@ -325,6 +336,14 @@ public class AccountsBulkPayWaiveTransferAPITests extends ApiTests {
     verifyThatEventWasSent(EventType.LOAN_RELATED_FEE_FINE_CLOSED, new JsonObject()
       .put("loanId", account2.getLoanId())
       .put("feeFineId", account2.getId()));
+    Awaitility.await()
+      .atMost(5, TimeUnit.SECONDS);
+
+    fetchLogEventPayloads(getOkapi()).forEach(payload -> assertThat(payload,
+      is(either(feeFineActionLogEventPayload(account1, request, action.getPartialResult(),
+          expectedActionAmount, expectedRemainingAmount1))
+        .or(feeFineActionLogEventPayload(account2, request, action.getFullResult(),
+        expectedActionAmount, expectedRemainingAmount2)))));
   }
 
   private Account createAccount(String accountId, double amount) {
@@ -332,6 +351,7 @@ public class AccountsBulkPayWaiveTransferAPITests extends ApiTests {
       .withId(accountId)
       .withOwnerId(randomId())
       .withUserId(USER_ID)
+      .withBarcode("barcode")
       .withItemId(randomId())
       .withLoanId(randomId())
       .withMaterialTypeId(randomId())

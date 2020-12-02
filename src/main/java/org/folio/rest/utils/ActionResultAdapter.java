@@ -17,12 +17,14 @@ import org.folio.rest.jaxrs.resource.Accounts.PostAccountsPayByAccountIdResponse
 import org.folio.rest.jaxrs.resource.Accounts.PostAccountsRefundByAccountIdResponse;
 import org.folio.rest.jaxrs.resource.Accounts.PostAccountsTransferByAccountIdResponse;
 import org.folio.rest.jaxrs.resource.Accounts.PostAccountsWaiveByAccountIdResponse;
-import org.folio.rest.jaxrs.resource.AccountsBulk;
+import org.folio.rest.jaxrs.resource.AccountsBulk.PostAccountsBulkCancelResponse;
 import org.folio.rest.jaxrs.resource.AccountsBulk.PostAccountsBulkCheckPayResponse;
 import org.folio.rest.jaxrs.resource.AccountsBulk.PostAccountsBulkCheckRefundResponse;
 import org.folio.rest.jaxrs.resource.AccountsBulk.PostAccountsBulkCheckTransferResponse;
 import org.folio.rest.jaxrs.resource.AccountsBulk.PostAccountsBulkCheckWaiveResponse;
 import org.folio.rest.jaxrs.resource.AccountsBulk.PostAccountsBulkPayResponse;
+import org.folio.rest.jaxrs.resource.AccountsBulk.PostAccountsBulkRefundResponse;
+import org.folio.rest.jaxrs.resource.AccountsBulk.PostAccountsBulkTransferResponse;
 import org.folio.rest.jaxrs.resource.AccountsBulk.PostAccountsBulkWaiveResponse;
 import org.folio.rest.jaxrs.resource.support.ResponseDelegate;
 
@@ -76,10 +78,10 @@ public enum ActionResultAdapter {
     PostAccountsBulkCheckTransferResponse::respond404WithTextPlain,
     PostAccountsBulkCheckTransferResponse::respond422WithApplicationJson,
     PostAccountsBulkCheckTransferResponse::respond500WithTextPlain,
-    null,
-    null,
-    null,
-    null
+    PostAccountsBulkTransferResponse::respond201WithApplicationJson,
+    PostAccountsBulkTransferResponse::respond404WithTextPlain,
+    PostAccountsBulkTransferResponse::respond422WithApplicationJson,
+    PostAccountsBulkTransferResponse::respond500WithTextPlain
   ),
   CANCEL(
     null,
@@ -94,10 +96,10 @@ public enum ActionResultAdapter {
     null,
     null,
     null,
-    null,
-    null,
-    null,
-    null
+    PostAccountsBulkCancelResponse::respond201WithApplicationJson,
+    PostAccountsBulkCancelResponse::respond404WithTextPlain,
+    PostAccountsBulkCancelResponse::respond422WithApplicationJson,
+    PostAccountsBulkCancelResponse::respond500WithTextPlain
   ),
   REFUND(
     PostAccountsCheckRefundByAccountIdResponse::respond200WithApplicationJson,
@@ -112,10 +114,10 @@ public enum ActionResultAdapter {
     PostAccountsBulkCheckRefundResponse::respond404WithTextPlain,
     PostAccountsBulkCheckRefundResponse::respond422WithApplicationJson,
     PostAccountsBulkCheckRefundResponse::respond500WithTextPlain,
-    null,
-    null,
-    null,
-    null
+    PostAccountsBulkRefundResponse::respond201WithApplicationJson,
+    PostAccountsBulkRefundResponse::respond404WithTextPlain,
+    PostAccountsBulkRefundResponse::respond422WithApplicationJson,
+    PostAccountsBulkRefundResponse::respond500WithTextPlain
   );
 
   public final Function<CheckActionResponse, ResponseDelegate> check200;

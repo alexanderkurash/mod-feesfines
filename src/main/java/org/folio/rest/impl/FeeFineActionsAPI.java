@@ -1,6 +1,9 @@
 package org.folio.rest.impl;
 
 import static org.apache.commons.lang3.BooleanUtils.isTrue;
+import static org.folio.rest.domain.Action.CREDIT;
+import static org.folio.rest.domain.Action.REFUND;
+import static org.folio.rest.service.LogEventPublisher.LogEventPayloadType.FEE_FINE;
 
 import java.io.IOException;
 import java.util.List;
@@ -23,6 +26,8 @@ import org.folio.rest.persist.PgExceptionUtil;
 import org.folio.rest.persist.PgUtil;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.persist.cql.CQLWrapper;
+import org.folio.rest.service.LogEventService;
+import org.folio.rest.service.LogEventPublisher;
 import org.folio.rest.service.PatronNoticeService;
 import org.folio.rest.tools.messages.MessageConsts;
 import org.folio.rest.tools.messages.Messages;
@@ -127,9 +132,9 @@ public class FeeFineActionsAPI implements Feefineactions {
 
       Promise<Response> postCompleted = Promise.promise();
       PgUtil.post(FEEFINEACTIONS_TABLE, entity, okapiHeaders, vertxContext, PostFeefineactionsResponse.class, postCompleted);
-
-      postCompleted.future().map(response ->
-        sendPatronNoticeIfNeedBe(entity, okapiHeaders, vertxContext, response))
+      postCompleted.future()
+        .compose(response -> publishLogEvent(entity, okapiHeaders, vertxContext, response))
+        .map(response -> sendPatronNoticeIfNeedBe(entity, okapiHeaders, vertxContext, response))
         .onComplete(asyncResultHandler);
     }
 
@@ -140,6 +145,20 @@ public class FeeFineActionsAPI implements Feefineactions {
         .sendPatronNotice(entity);
     }
     return response;
+  }
+
+  private Future<Response> publishLogEvent(Feefineaction entity, Map<String, String> okapiHeaders,
+    Context vertxContext, Response response) {
+    // do not publish log records for CREDIT and REFUND actions
+    if (!CREDIT.isActionForResult(entity.getTypeAction()) && !REFUND.isActionForResult(entity.getTypeAction())) {
+      return new LogEventService(vertxContext.owner(), okapiHeaders).createFeeFineLogEventPayload(entity)
+        .compose(eventPayload -> {
+          new LogEventPublisher(vertxContext, okapiHeaders).publishLogEvent(eventPayload, FEE_FINE);
+          return Future.succeededFuture();
+        })
+        .map(v -> response);
+    }
+    return Future.succeededFuture(response);
   }
 
   @Validate
